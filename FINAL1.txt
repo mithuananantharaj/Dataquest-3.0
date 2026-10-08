@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yash Career Guidance | Cognitive Engine</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'], display: ['Space Grotesk', 'sans-serif'] },
+          colors: { 
+            brandCharcoal: '#1a1a1a',
+            brandDark: '#0e0e0e',
+            brandGold: '#d3af37',
+            brandGoldDark: '#b99725',
+            brandGoldSoft: '#eee1ad',
+            brandPale: '#fbf7e8'
+          },
+          animation: { 
+            'float': 'float 4s ease-in-out infinite',
+            'fade-in-up': 'fadeInUp 0.6s ease-out forwards',
+            'pop-in': 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards'
+          },
+          keyframes: { 
+            float: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-10px)' } },
+            fadeInUp: { '0%': { opacity: '0', transform: 'translateY(30px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+            popIn: { '0%': { transform: 'scale(0.95)' }, '50%': { transform: 'scale(1.02)' }, '100%': { transform: 'scale(1)' } }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root {
+      --black: #000;
+      --charcoal: #1a1a1a;
+      --gold: #d3af37;
+      --gold-dark: #b99725;
+      --grey: #e0e0e0;
+      --white: #fff;
+      --soft: #f7f7f7;
+      --ink: #383838;
+      --muted: #686868;
+      --pale: #fbf7e8;
+      --gold-soft: #eee1ad;
+      --radius: 16px;
+    }
+
+    body {
+      background-color: #121212;
+      color: #f7f7f7;
+      background-image: 
+        radial-gradient(circle at 15% 50%, rgba(211, 175, 55, 0.08), transparent 25%),
+        radial-gradient(circle at 85% 30%, rgba(238, 225, 173, 0.04), transparent 25%);
+      background-attachment: fixed;
+      overflow-x: hidden;
+      scroll-behavior: smooth;
+    }
+
+    .glass-card {
+      background: rgba(26, 26, 26, 0.85);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(211, 175, 55, 0.2);
+      transition: all 0.3s ease;
+    }
+    .glass-card:hover:not(.static-card) {
+      border-color: var(--gold);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px -10px rgba(211, 175, 55, 0.25);
+    }
+
+    .card-selected {
+      border-color: var(--gold) !important;
+      background: linear-gradient(145deg, rgba(211, 175, 55, 0.18), rgba(26, 26, 26, 0.95)) !important;
+      box-shadow: 0 0 0 1px var(--gold), 0 15px 35px -5px rgba(211, 175, 55, 0.35) !important;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #000; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+
+    .phase { display: none; opacity: 0; }
+    .phase.active { display: block; animation: slideUp 0.5s forwards; }
+
+    select {
+      background: #1a1a1a;
+      color: #fff;
+      border: 1px solid rgba(211, 175, 55, 0.3);
+      padding: 12px 16px;
+      border-radius: 12px;
+      outline: none;
+      width: 100%;
+      appearance: none;
+      cursor: pointer;
+    }
+    select:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(211, 175, 55, 0.3); }
+    
+    .timeline-node::before {
+      content: ''; position: absolute; left: -29px; top: 6px; width: 14px; height: 14px;
+      border-radius: 50%; background: var(--gold); box-shadow: 0 0 12px rgba(211, 175, 55, 0.8);
+    }
+
+    @media print {
+      body { background: white !important; color: black !important; background-image: none !important; }
+      .no-print, header, button { display: none !important; }
+      .glass-card { 
+        background: white !important; 
+        color: black !important; 
+        border: 1px solid #ddd !important; 
+        box-shadow: none !important; 
+        page-break-inside: avoid;
+      }
+      * { text-shadow: none !important; box-shadow: none !important; }
+      .text-white { color: #111 !important; }
+      .text-slate-400, .text-slate-300 { color: #444 !important; }
+      #phase-4 { display: block !important; opacity: 1 !important; }
+      canvas { max-height: 250px !important; }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-brandGold selection:text-black">
+
+  <div id="processing-overlay" class="fixed inset-0 bg-black/85 items-center justify-center flex-col text-center hidden z-[9999] backdrop-blur-md">
+    <div class="w-16 h-16 border-4 border-brandGold/30 border-t-brandGold rounded-full animate-spin mb-6"></div>
+    <h2 class="text-3xl font-display font-black text-white mb-2 tracking-widest uppercase">Synthesizing Data</h2>
+    <p class="text-brandGoldSoft font-medium" id="loading-text">Vectorizing Aptitude & Intelligences...</p>
+  </div>
+
+  <header class="border-b border-brandGold/20 bg-black/90 backdrop-blur-xl sticky top-0 z-50 px-6 py-4 shadow-2xl no-print">
+    <div class="max-w-7xl mx-auto flex justify-between items-center gap-4">
+      <div class="flex items-center space-x-3 cursor-pointer shrink-0" onclick="location.reload()">
+        <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-brandGoldDark via-brandGold to-brandGoldSoft flex items-center justify-center font-display font-black text-xl shadow-[0_0_15px_rgba(211,175,55,0.4)] text-black animate-float">Y</div>
+        <h1 class="text-xl font-display font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-brandPale via-brandGold to-brandGoldDark hidden sm:block">Yash Career Guidance</h1>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <div id="nav-tracker" class="hidden sm:flex items-center space-x-3">
+          <div class="w-24 md:w-44 bg-neutral-900 rounded-full h-1.5 overflow-hidden border border-brandGold/20">
+            <div id="master-progress" class="bg-gradient-to-r from-brandGoldDark to-brandGold h-full transition-all duration-700" style="width: 0%;"></div>
+          </div>
+          <span class="text-[10px] font-bold uppercase tracking-widest text-brandGoldSoft bg-black/80 px-3 py-1.5 rounded-md border border-brandGold/30" id="phase-badge">Phase 1/3</span>
+        </div>
+
+        <div id="auth-section" class="flex items-center">
+          <div id="g_id_signin_container">
+            <div id="g_id_onload"
+                 data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+                 data-callback="handleCredentialResponse"
+                 data-auto_prompt="false">
+            </div>
+            <div class="g_id_signin" 
+                 data-type="standard" 
+                 data-size="medium" 
+                 data-theme="filled_black" 
+                 data-text="signin_with" 
+                 data-shape="pill" 
+                 data-logo_alignment="left">
+            </div>
+          </div>
+
+          <div id="user-profile" class="hidden items-center gap-3 bg-neutral-900/90 border border-brandGold/30 px-3 py-1.5 rounded-full">
+            <img id="user-avatar" class="w-7 h-7 rounded-full border border-brandGold object-cover" alt="User avatar" src="" />
+            <span id="user-name" class="text-xs font-semibold text-brandGoldSoft hidden md:inline-block max-w-[100px] truncate">User</span>
+            <button onclick="handleSignOut()" class="text-[11px] text-neutral-400 hover:text-brandGold px-1 font-bold transition-colors">Logout</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 w-full flex-grow relative">
+
+    <div id="phase-0" class="phase-section animate-fade-in-up flex flex-col justify-center min-h-[75vh] text-center max-w-4xl mx-auto">
+      <div class="inline-block px-4 py-1.5 rounded-full bg-brandGold/10 border border-brandGold/30 text-brandGold font-bold text-xs uppercase tracking-widest mb-6 animate-float mx-auto">
+        Multi-Dimensional STEAM Profiling
+      </div>
+      <h2 class="text-5xl md:text-7xl font-display font-black text-white mb-6 leading-tight tracking-tighter">
+        Discover Your <br/><span class="text-transparent bg-clip-text bg-gradient-to-r from-brandGoldSoft via-brandGold to-brandGoldDark">True Architecture.</span>
+      </h2>
+      <p class="text-neutral-400 text-lg md:text-xl mb-12 leading-relaxed max-w-2xl mx-auto">
+        Stop guessing your future. We synthesize your <b>9 Intelligences</b>, test your <b>Analytical Aptitude</b>, and align with your family's <b>Financial Constraints</b> to generate a real-world, market-proof career roadmap.
+      </p>
+      <button onclick="startApp()" class="mx-auto px-10 py-4 bg-gradient-to-r from-brandGoldDark to-brandGold text-black font-display font-bold text-lg rounded-2xl hover:brightness-110 transition-all shadow-[0_0_30px_rgba(211,175,55,0.35)] flex items-center gap-3">
+        Initialize Engine <span>→</span>
+      </button>
+      <p class="text-xs text-neutral-500 mt-6 hidden lg:block">Press <kbd class="px-2 py-1 bg-neutral-900 border border-brandGold/20 rounded mx-1 text-brandGoldSoft">Shift + D</kbd> to run Auto-Demo mode.</p>
+    </div>
+
+    <div id="phase-1" class="phase-section hidden flex-col h-full max-w-6xl mx-auto">
+      <div class="mb-6 flex flex-col sm:flex-row justify-between sm:items-end gap-4">
+        <div>
+          <h2 class="text-3xl font-display font-black text-white">Cognitive Scenarios</h2>
+          <p class="text-neutral-400 mt-1">Select 1 to 3 natural approaches for each high-pressure crisis.</p>
+        </div>
+        <div class="text-left sm:text-right">
+          <div class="text-sm font-bold text-brandGold">Selected: <span id="intel-count" class="text-white text-xl">0</span>/3</div>
+        </div>
+      </div>
+      
+      <div class="w-full bg-neutral-900 h-2 rounded-full overflow-hidden border border-brandGold/20 mb-8">
+        <div id="intel-progress" class="bg-gradient-to-r from-brandGoldDark to-brandGold h-full transition-all duration-500" style="width: 10%;"></div>
+      </div>
+
+      <div class="glass-card static-card rounded-3xl p-6 sm:p-8 mb-8 relative overflow-hidden">
+        <div class="absolute -right-20 -top-20 w-64 h-64 bg-brandGold/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="relative z-10">
+          <div class="flex items-center gap-3 mb-4">
+            <span id="scen-icon" class="text-3xl">🚨</span>
+            <span id="scen-cat" class="text-[10px] font-bold uppercase tracking-widest text-brandGold bg-black/60 px-3 py-1 rounded-md border border-brandGold/30">Category</span>
+          </div>
+          <h3 id="scen-title" class="text-2xl sm:text-3xl font-display font-bold text-white mb-3">Title</h3>
+          <p id="scen-desc" class="text-sm sm:text-base text-neutral-300 border-l-2 border-brandGold pl-4 bg-black/40 py-2 rounded-r-lg">Desc</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="intel-options"></div>
+
+      <div class="mt-8 flex justify-between items-center bg-black/60 p-4 rounded-2xl border border-brandGold/20">
+        <button onclick="prevIntel()" id="btn-intel-prev" class="px-6 py-3 text-neutral-400 font-bold hover:text-white transition-colors disabled:opacity-30 disabled:hover:text-neutral-400">← Back</button>
+        <span class="text-xs font-bold text-neutral-500 uppercase tracking-widest" id="intel-step-text">Scenario 1 / 10</span>
+        <button onclick="nextIntel()" id="btn-intel-next" disabled class="px-8 py-3 bg-brandGold text-black font-bold rounded-xl disabled:opacity-30 disabled:bg-neutral-800 disabled:text-neutral-500 transition-all shadow-lg hover:bg-brandGoldDark">Next →</button>
+      </div>
+    </div>
+
+    <div id="phase-2" class="phase-section hidden flex-col lg:flex-row gap-6 max-w-7xl mx-auto h-full">
+      <div class="flex-1 glass-card static-card rounded-3xl p-6 sm:p-8 flex flex-col">
+        <div class="flex justify-between mb-6">
+          <span class="text-xs font-bold tracking-widest uppercase bg-white/5 px-3 py-1 rounded-md text-neutral-300 border border-brandGold/20" id="apti-q-num">Q1 of 20</span>
+          <span class="text-xs font-bold tracking-widest uppercase bg-black/60 px-3 py-1 rounded-md text-brandGold border border-brandGold/30" id="apti-q-topic">Topic</span>
+        </div>
+        <h3 class="text-xl sm:text-2xl font-semibold text-white mb-8 leading-relaxed" id="apti-q-text">Question Text</h3>
+        <div class="space-y-3" id="apti-options"></div>
+        
+        <div class="mt-auto pt-8 flex justify-between items-center border-t border-brandGold/20">
+          <button onclick="prevApti()" id="btn-apti-prev" class="flex items-center gap-2 text-neutral-400 font-bold hover:text-white disabled:opacity-30 transition-colors">← Prev</button>
+          <button onclick="toggleMarkApti()" id="btn-apti-mark" class="px-4 py-2 rounded-lg font-bold text-xs sm:text-sm bg-brandGold/10 text-brandGold border border-brandGold/30 transition-all">Mark for Review</button>
+          <button onclick="nextApti()" id="btn-apti-next" class="flex items-center gap-2 text-brandGold font-bold hover:text-brandGoldSoft transition-colors">Next →</button>
+        </div>
+      </div>
+
+      <div class="lg:w-80 glass-card static-card rounded-3xl p-6 h-fit">
+        <h3 class="font-bold text-white mb-4 text-sm uppercase tracking-wider">Navigator</h3>
+        <div class="mb-3 text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Quant & Math</div>
+        <div class="grid grid-cols-5 gap-2 mb-6" id="apti-nav-1"></div>
+        <div class="mb-3 text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Analytical & Logical</div>
+        <div class="grid grid-cols-5 gap-2 mb-8" id="apti-nav-2"></div>
+        <button onclick="finishApti()" class="w-full py-4 bg-gradient-to-r from-brandGoldDark to-brandGold text-black font-bold rounded-xl hover:brightness-110 transition-all shadow-lg flex justify-center items-center gap-2">
+          Submit Section <span>✓</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="phase-3" class="phase-section hidden flex-col max-w-4xl mx-auto">
+      <div class="mb-8">
+        <h2 class="text-3xl font-display font-black text-white">Parent Assessment</h2>
+        <p class="text-neutral-400 mt-1">These hard filters strictly ensure financial safety and align career paths with family reality.</p>
+      </div>
+
+      <div class="glass-card static-card rounded-3xl p-6 sm:p-8 space-y-8" id="parent-form-container"></div>
+
+      <div class="mt-8 flex justify-end">
+        <button onclick="synthesizeRoadmap()" class="px-8 sm:px-12 py-4 bg-gradient-to-r from-brandGoldDark to-brandGold text-black font-display font-bold text-lg rounded-2xl hover:brightness-110 transition-all shadow-[0_0_30px_rgba(211,175,55,0.35)] flex items-center gap-3">
+          Generate Architecture ⚡
+        </button>
+      </div>
+    </div>
+
+    <div id="phase-4" class="phase-section hidden flex-col max-w-7xl mx-auto">
+      
+      <div id="defaults-banner" class="hidden mb-6 p-4 bg-brandGold/10 border border-brandGold/40 rounded-xl flex items-start gap-3 no-print">
+        <div class="text-brandGold text-xl">⚠️</div>
+        <div>
+          <h4 class="text-brandGold font-bold text-sm">Safe Defaults Applied</h4>
+          <p class="text-brandGoldSoft/80 text-xs mt-1" id="defaults-text"></p>
+        </div>
+      </div>
+
+      <div class="flex flex-col md:flex-row justify-between md:items-end mb-10 border-b border-brandGold/20 pb-6">
+        <div>
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-brandGold/10 border border-brandGold/30 text-brandGold text-[10px] font-bold uppercase tracking-widest mb-4">
+            <div class="w-2 h-2 rounded-full bg-brandGold animate-pulse"></div> Processing Complete
+          </div>
+          <h2 class="text-4xl md:text-5xl font-display font-black text-white tracking-tight">Your Master Plan.</h2>
+          <p class="text-neutral-400 mt-2">Analyzed across Intelligences, Aptitude, and Financial Constraints.</p>
+        </div>
+        
+        <div class="mt-6 md:mt-0 flex flex-wrap items-center gap-3 no-print">
+          <button onclick="shareToWhatsApp()" class="px-5 py-2 bg-[#25D366] hover:bg-[#1ebd57] text-white font-bold rounded-xl transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(37,211,102,0.3)]">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+            WhatsApp
+          </button>
+          <button onclick="window.print()" class="px-5 py-2 bg-brandGold hover:bg-brandGoldDark text-black font-bold rounded-xl transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(211,175,55,0.3)]">
+            <span>📄</span> Print
+          </button>
+          <button onclick="location.reload()" class="px-5 py-2 bg-neutral-900 hover:bg-neutral-800 border border-brandGold/20 text-brandGoldSoft font-bold rounded-xl transition-all flex items-center gap-2">
+            <span>↺</span> Restart
+          </button>
+        </div>
+      </div>
+
+      <div class="glass-card p-6 md:p-8 rounded-3xl mb-10 border-brandGold/40 relative overflow-hidden">
+        <div class="absolute -left-10 -top-10 w-40 h-40 bg-brandGold/10 rounded-full blur-3xl pointer-events-none"></div>
+        <h3 class="text-sm font-bold text-brandGold uppercase tracking-widest mb-4 flex items-center gap-2 relative z-10">
+          <span class="animate-pulse">✨</span> AI Career Synthesis
+        </h3>
+        <div id="llm-narrative-box" class="text-neutral-200 text-lg leading-relaxed font-medium relative z-10 min-h-[100px]"></div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10">
+        <div class="lg:col-span-4 glass-card static-card rounded-3xl p-6 relative flex flex-col">
+          <div class="px-3 py-1 bg-brandGold/15 text-brandGold text-[10px] font-bold uppercase tracking-widest rounded border border-brandGold/30 w-fit mb-4">
+            Cognitive Vector Matrix
+          </div>
+          <div class="flex-grow flex items-center justify-center min-h-[250px]">
+            <canvas id="radarChart"></canvas>
+          </div>
+        </div>
+        
+        <div class="lg:col-span-4 flex flex-col gap-6">
+          <div class="glass-card static-card rounded-3xl p-6 flex-grow">
+            <h3 class="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-4 flex items-center gap-2"><span>🏆</span> Top Dominant Vectors</h3>
+            <div id="dash-leaderboard" class="space-y-3"></div>
+          </div>
+          <div class="glass-card static-card rounded-3xl p-6 bg-gradient-to-br from-brandCharcoal to-black border-brandGold/40 flex justify-between items-center">
+            <div>
+              <h3 class="text-[10px] font-bold text-brandGold uppercase tracking-widest mb-1">Analytical Quotient</h3>
+              <p class="text-xs text-neutral-300 font-medium" id="dash-apti-desc">Quant & Logic</p>
+            </div>
+            <div class="text-4xl font-display font-black text-brandGoldSoft" id="dash-apti-score">0%</div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-4 glass-card static-card p-6 rounded-3xl border-t-4 border-t-brandGold flex flex-col justify-between relative overflow-hidden">
+          <div class="absolute -right-20 -bottom-20 w-48 h-48 bg-brandGold/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div>
+            <h3 class="text-[10px] font-bold text-brandGold uppercase tracking-widest mb-4 relative z-10">Financial Solver Limits</h3>
+            <div class="space-y-4 text-sm relative z-10">
+              <div class="flex justify-between items-end border-b border-brandGold/10 pb-2">
+                <span class="text-neutral-400 text-xs">Base Budget</span><span class="text-white font-bold" id="dash-bud">₹0L/yr</span>
+              </div>
+              <div class="flex justify-between items-end border-b border-brandGold/10 pb-2">
+                <span class="text-neutral-400 text-xs">Loan Tolerance</span><span class="text-white font-bold" id="dash-loan">₹0L/yr</span>
+              </div>
+              <div class="flex justify-between items-end border-b border-brandGold/10 pb-2">
+                <span class="text-neutral-400 text-xs">Waivers/Aid</span><span class="text-brandGoldSoft font-bold" id="dash-aid">₹0L/yr</span>
+              </div>
+            </div>
+          </div>
+          <div class="bg-black/60 border border-brandGold/40 p-4 rounded-xl mt-6 relative z-10">
+            <div class="text-brandGoldSoft text-[10px] uppercase font-bold mb-1">Hard Cost Ceiling</div>
+            <div class="text-brandGold font-display font-black text-2xl" id="dash-ceil">₹0L/yr</div>
+            <p class="text-[10px] text-neutral-400 mt-1">Engine rigorously pruned paths exceeding this cap.</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="top-match-container" class="mb-12"></div>
+
+      <h3 class="text-2xl font-display font-black text-white mb-6 flex items-center gap-3">
+        <span class="w-8 h-8 rounded-full bg-neutral-900 border border-brandGold/30 flex items-center justify-center text-sm text-brandGold">🔀</span> Alternate Highly-Suited Options
+      </h3>
+      <div id="dash-jobs" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"></div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+        <div class="glass-card static-card p-6 rounded-3xl" id="dash-conflict"></div>
+        <div class="glass-card static-card p-6 rounded-3xl">
+          <h3 class="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-4">Scholarships to Pursue</h3>
+          <ul id="dash-schols" class="list-disc pl-5 text-sm text-neutral-300 space-y-3"></ul>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function decodeJwtResponse(token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+      } catch (e) {
+        console.error("JWT Decode error:", e);
+        return null;
+      }
+    }
+
+    function handleCredentialResponse(response) {
+      const responsePayload = decodeJwtResponse(response.credential);
+      if (responsePayload) {
+        localStorage.setItem('yash_user', JSON.stringify({
+          name: responsePayload.name,
+          email: responsePayload.email,
+          picture: responsePayload.picture
+        }));
+        updateAuthUI(responsePayload);
+      }
+    }
+
+    function updateAuthUI(user) {
+      const signInContainer = document.getElementById('g_id_signin_container');
+      const profileContainer = document.getElementById('user-profile');
+      const avatar = document.getElementById('user-avatar');
+      const name = document.getElementById('user-name');
+
+      if (user) {
+        signInContainer.classList.add('hidden');
+        profileContainer.classList.remove('hidden');
+        profileContainer.classList.add('flex');
+        avatar.src = user.picture || 'https://via.placeholder.com/32';
+        name.innerText = user.name || user.email || 'User';
+      } else {
+        profileContainer.classList.add('hidden');
+        profileContainer.classList.remove('flex');
+        signInContainer.classList.remove('hidden');
+      }
+    }
+
+    function handleSignOut() {
+      localStorage.removeItem('yash_user');
+      if (window.google && google.accounts.id) {
+        google.accounts.id.disableAutoSelect();
+      }
+      updateAuthUI(null);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const saved = localStorage.getItem('yash_user');
+      if (saved) {
+        try {
+          updateAuthUI(JSON.parse(saved));
+        } catch (e) {
+          localStorage.removeItem('yash_user');
+        }
+      }
+    });
+
+    const SCENARIOS = [
+      { id:1, cat: "🚨 Urban Crisis", icon: "🚨", title: "Smart City Grid Collapse", desc: "A cyclonic storm floods the power grid. How do you tackle the failure?", opts: { logical: { t: "Predictive Load Simulation", d: "Algorithmically prevent transformer blowout." }, spatial: { t: "3D Digital Routing", d: "Visually map flood levels for drone paths." }, kinesthetic: { t: "Physical Triage", d: "Wade in and manually splice high-voltage cables." }, linguistic: { t: "Crisis Communication", d: "Broadcast clear emergency instructions." }, naturalistic: { t: "Micro-Grid Integration", d: "Repurpose solar/wind into an organic backup." }, interpersonal: { t: "Command Leadership", d: "Mediate disputes between army and local crews." }, intrapersonal: { t: "Systemic Diagnostic", d: "Analyze organizational biases causing the failure." }, musical: { t: "Acoustic Diagnostics", d: "Listen to harmonics to predict mechanical snapping." }, existential: { t: "Paradigm Redesign", d: "Question if centralized architecture is sustainable." } } },
+      { id:2, cat: "🛰️ Space Crisis", icon: "🛰️", title: "Orbital Decompression", desc: "A micrometeoroid breaches the hull. Pressure is dropping fast.", opts: { logical: { t: "Differential Calculus", d: "Mathematically pinpoint the breach location." }, spatial: { t: "3D Trajectory Mapping", d: "Visually plot safe emergency corridors." }, kinesthetic: { t: "EVA Hull Patching", d: "Suit up and physically weld broken struts." }, linguistic: { t: "Standardized Broadcasts", d: "Issue crisp aviation checklists to ground control." }, naturalistic: { t: "Algae Shielding", d: "Use biological microalgae to scrub toxic CO2." }, interpersonal: { t: "Mission Synchronization", d: "Keep international crew panic in check." }, intrapersonal: { t: "Sensory Calibration", d: "Regulate your own hypoxic panic before venting." }, musical: { t: "Ultrasonic Detection", d: "Listen for high-pitch air whistling in a vacuum." }, existential: { t: "Expansion Assessment", d: "Ponder the fragility of human off-world survival." } } },
+      { id:3, cat: "🌊 Ecology", icon: "🌊", title: "Subsea Rupture", desc: "A thermal pipeline dumps toxic coolant into a coral reserve.", opts: { logical: { t: "Dispersion Modeling", d: "Run thermodynamic algorithms to track the plume." }, spatial: { t: "Bathymetric Mapping", d: "Synthesize 3D sonar to position containment." }, kinesthetic: { t: "ROV Teleoperation", d: "Manually clamp steel collars using subsea arms." }, linguistic: { t: "Policy Directives", d: "Draft urgent legal briefs to hold operators accountable." }, naturalistic: { t: "Biomimetic Remediation", d: "Deploy indigenous bacteria to break down coolants." }, interpersonal: { t: "Coalition Alignment", d: "Unite fishers and corporate crews for containment." }, intrapersonal: { t: "Bias Audit", d: "Review the engineering blindspots that permitted this." }, musical: { t: "Bioacoustic Deterrence", d: "Broadcast frequencies to steer marine life away." }, existential: { t: "Biosphere Inquiry", d: "Challenge the ethics of deep-ocean extraction." } } },
+      { id:4, cat: "🚗 Transit", icon: "🚗", title: "Autonomous Deadlock", desc: "1,200 autonomous shuttles freeze underground due to LiDAR cross-talk.", opts: { logical: { t: "Graph-Theory Bottleneck", d: "Execute algorithms to dissolve circular wait-locks." }, spatial: { t: "Isometric Mapping", d: "Design virtual 3D lane diversions through tight spaces." }, kinesthetic: { t: "Manual Override", d: "Physically drive and push disabled pods off track." }, linguistic: { t: "Commuter Advisory", d: "Deliver clear PA instructions to prevent stampedes." }, naturalistic: { t: "Airflow Monitoring", d: "Harness ambient drafts to flush out battery heat." }, interpersonal: { t: "Fleet Coordination", d: "Rally municipal dispatchers into a command hierarchy." }, intrapersonal: { t: "Blind-Spot Retrospective", d: "Analyze automated assumptions prioritizing efficiency." }, musical: { t: "LiDAR Echo Damping", d: "Isolate harmonic phase reflections to retune sensors." }, existential: { t: "Agency Critique", d: "Advocate for human analog override in smart cities." } } },
+      { id:5, cat: "🛡️ Cyber", icon: "🛡️", title: "Hospital Ransomware", desc: "A zero-day worm corrupts ICU ventilators and medical records.", opts: { logical: { t: "Binary Exploit", d: "Decompile the malware and script an antidote." }, spatial: { t: "Network Topology", d: "Map firebreaks visually to protect surgical wings." }, kinesthetic: { t: "Hardware Air-Gapping", d: "Sprint to unplug infected ethernet jacks by hand." }, linguistic: { t: "Ethical Disclosures", d: "Author public disclosures shielding patient privacy." }, naturalistic: { t: "Cold-Chain Preservation", d: "Rig dry-ice to save vaccines without power." }, interpersonal: { t: "Incident Triage", d: "Mediate between frantic directors and weary IT staff." }, intrapersonal: { t: "Security Retrospective", d: "Audit the human cognitive vulnerabilities (phishing)." }, musical: { t: "Acoustic Vitals", d: "Train staff to verify patient heartbeats by sound." }, existential: { t: "Mortality Digitization", d: "Advocate for un-hackable analog medical safeguards." } } },
+      { id:6, cat: "⚡ Rail", icon: "⚡", title: "Maglev Brake Failure", desc: "A maglev train loses brakes at 500 km/h toward a terminal.", opts: { logical: { t: "Kinetic Algorithms", d: "Pulse stator coils to induce eddy currents." }, spatial: { t: "3D Track Run-Off", d: "Route train into a steep uphill mountain branch." }, kinesthetic: { t: "Aero Brake Deployment", d: "Physically yank levers for emergency friction wings." }, linguistic: { t: "Passenger Directives", d: "Command impact-brace postures without causing panic." }, naturalistic: { t: "Atmospheric Drag", d: "Utilize head-wind compression to bleed velocity naturally." }, interpersonal: { t: "Central Dispatch", d: "Coordinate switches and medical teams at the terminal." }, intrapersonal: { t: "Panic Override", d: "Suppress biological fear to execute decision trees." }, musical: { t: "Resonant Frequency", d: "Listen to the cryostat pitch to gauge friction levels." }, existential: { t: "Hyper-Velocity Society", d: "Examine if society trades biological safety for speed." } } },
+      { id:7, cat: "🤖 AI Health", icon: "🤖", title: "Surgical Robot Anomaly", desc: "A neuro-robotic arm develops a micro-tremor near a brain artery.", opts: { logical: { t: "Stochastic Filtering", d: "Apply Kalman filtering to digitally erase tremor spikes." }, spatial: { t: "Volumetric Navigation", d: "Render 3D voxel zones around the scalpel tip." }, kinesthetic: { t: "Manual Micromanipulation", d: "Disengage clutch and stabilize the clamp by hand." }, linguistic: { t: "OR Error Protocol", d: "Communicate exact abort criteria with zero ambiguity." }, naturalistic: { t: "Bio-Gel Cushioning", d: "Inject organic hydrogel to absorb kinetic vibrations." }, interpersonal: { t: "Cross-Disciplinary OR", d: "Unite clashing roboticists and veteran surgeons." }, intrapersonal: { t: "Egoless Calibration", d: "Overcome sunken-cost bias and abort for safety." }, musical: { t: "Anti-Phase Dampening", d: "Broadcast an inverted sound wave to cancel the jitter." }, existential: { t: "Mortality Ethics", d: "Question if machines should navigate life and death." } } },
+      { id:8, cat: "⚖️ Gov", icon: "⚖️", title: "Algorithmic Triage", desc: "An AI must choose sending power to a hospital or a trade port.", opts: { logical: { t: "Multi-Objective Pareto", d: "Mathematically maximize life-years vs economic supply." }, spatial: { t: "Global Flow Mapping", d: "Build a 3D dashboard of shipping lanes and burn rates." }, kinesthetic: { t: "Hardware Fabrication", d: "Physically salvage micro-turbines so both get power." }, linguistic: { t: "Policy Doctrine", d: "Author a transparent legal justification for the public." }, naturalistic: { t: "Bioregional Circularity", d: "Harness local biomass to take the hospital off-grid." }, interpersonal: { t: "Stakeholder Negotiation", d: "Broker a shared-sacrifice agreement via diplomacy." }, intrapersonal: { t: "Bias Moral Scrutiny", d: "Interrogate utilitarian biases built into the AI's code." }, musical: { t: "Rhythmic Scheduling", d: "Pulse power transfers based on natural societal rhythms." }, existential: { t: "Human Dignity", d: "Demand that human life always precedes economic metrics." } } },
+      { id:9, cat: "🌋 Energy", icon: "🌋", title: "Geothermal Overpressure", desc: "Steam pressure spikes threaten a catastrophic surface explosion.", opts: { logical: { t: "Thermodynamic Equations", d: "Model exact choke-orifice ratios to bleed pressure." }, spatial: { t: "3D Seismic Mapping", d: "Map sub-surface faults to plan horizontal relief drilling." }, kinesthetic: { t: "Wellhead Torquing", d: "Manually tighten hydraulic manifolds in deafening steam." }, linguistic: { t: "Evacuation Briefings", d: "Formulate technical warnings for panic-free evacuations." }, naturalistic: { t: "Aquifer Cushioning", d: "Divert superheated steam into porous rock beds naturally." }, interpersonal: { t: "Command Alignment", d: "Delegate shut-in sequences across terrified drill crews." }, intrapersonal: { t: "Reliability Pre-Mortem", d: "Identify the unconscious assumptions regarding stability." }, musical: { t: "Micro-Tremor Harmonics", d: "Analyze infrasound resonance to predict wellbore collapse." }, existential: { t: "Earth Boundary Ethics", d: "Contemplate the limits of tapping deep planetary heat." } } },
+      { id:10, cat: "🌿 Climate", icon: "🌿", title: "Extreme Heat Dome", desc: "A 50°C dome hits a non-airconditioned, dense urban settlement.", opts: { logical: { t: "Triage Modeling", d: "Synthesize wet-bulb indices to route mobile cooling units." }, spatial: { t: "3D Micro-Shade Layouts", d: "Map solar paths to build fabric reflection canopies." }, kinesthetic: { t: "Misting Assembly", d: "Physically assemble PVC pipes and solar pumps onsite." }, linguistic: { t: "Vernacular Directives", d: "Translate highly visual hydration guides into dialects." }, naturalistic: { t: "Vegetative Heat Sinks", d: "Deploy fast-growing vines and evaporative clay pots." }, interpersonal: { t: "Relief Mobilization", d: "Rally local youth leaders to distribute water fairly." }, intrapersonal: { t: "Equitable Introspection", d: "Audit your own biases when distributing scarce ice." }, musical: { t: "Underground Detection", d: "Use acoustic rods to pinpoint municipal pipeline leaks." }, existential: { t: "Structural Critique", d: "Critique economic models that leave populations exposed." } } }
+    ];
+
+    const INTEL_META = {
+      logical: { name: "Logical-Mathematical", short: "Logical" }, spatial: { name: "Spatial-Visual", short: "Spatial" },
+      kinesthetic: { name: "Bodily-Kinesthetic", short: "Kinesthetic" }, linguistic: { name: "Linguistic-Verbal", short: "Linguistic" },
+      naturalistic: { name: "Naturalistic", short: "Naturalistic" }, interpersonal: { name: "Interpersonal", short: "Interpersonal" },
+      intrapersonal: { name: "Intrapersonal", short: "Intrapersonal" }, musical: { name: "Musical-Rhythmic", short: "Musical" },
+      existential: { name: "Existential", short: "Existential" }
+    };
+    const INTEL_ORDER = ['logical', 'linguistic', 'spatial', 'kinesthetic', 'musical', 'interpersonal', 'intrapersonal', 'naturalistic', 'existential'];
+
+    const APTI = [
+      { section: 'Quant', topic: 'Probability', text: "Two fair dice are rolled simultaneously. Probability that the sum is exactly 8?", options: ["1/6", "5/36", "7/36", "1/9"], correctIndex: 1 },
+      { section: 'Quant', topic: 'Time & Work', text: "Person A can complete a project in 10 days, Person B in 15 days. How many days if they work together?", options: ["5 days", "6 days", "8 days", "12.5 days"], correctIndex: 1 },
+      { section: 'Quant', topic: 'Time, Speed', text: "A train 100m long is running at 60 km/hr. How many seconds to pass a stationary post?", options: ["5 seconds", "6 seconds", "8 seconds", "10 seconds"], correctIndex: 1 },
+      { section: 'Quant', topic: 'Permutations', text: "In how many ways can the letters of 'MATH' be arranged?", options: ["12", "16", "24", "36"], correctIndex: 2 },
+      { section: 'Quant', topic: 'Algebra', text: "A father is 3 times as old as his son. In 12 years, he will be twice as old. Son's current age?", options: ["10 years", "12 years", "14 years", "15 years"], correctIndex: 1 },
+      { section: 'Quant', topic: 'Percentages', text: "Salary increased by 20% then decreased by 20%. Net change?", options: ["No change", "4% increase", "4% decrease", "2% decrease"], correctIndex: 2 },
+      { section: 'Quant', topic: 'Profit & Loss', text: "Selling an article for $600 makes a 20% profit. Cost price?", options: ["$480", "$500", "$520", "$580"], correctIndex: 1 },
+      { section: 'Quant', topic: 'Ratios', text: "If A:B = 3:4 and B:C = 8:9, ratio of A:C?", options: ["1:2", "2:3", "3:8", "4:9"], correctIndex: 1 },
+      { section: 'Quant', topic: 'Interest', text: "A sum doubles in 5 years at simple interest. Rate per annum?", options: ["10%", "15%", "20%", "25%"], correctIndex: 2 },
+      { section: 'Quant', topic: 'Mensuration', text: "If radius of a circle is doubled, percentage area increase?", options: ["100%", "200%", "300%", "400%"], correctIndex: 2 },
+      { section: 'Analytical', topic: 'Syllogisms', text: "1. All computers are machines. 2. All machines are electronic. Conclusion: All computers are electronic.", options: ["Yes, it follows", "No, it does not follow", "Data is insufficient", "Only partially follows"], correctIndex: 0 },
+      { section: 'Analytical', topic: 'Relations', text: "Pointing to a photo, a man said, 'I have no siblings, but that man's father is my father's son.' Whose photo?", options: ["His own", "His son's", "His father's", "His nephew's"], correctIndex: 1 },
+      { section: 'Analytical', topic: 'Direction', text: "Walks 10km North, turns right walks 10km, turns right walks 10km. Direction from start?", options: ["North", "South", "East", "West"], correctIndex: 2 },
+      { section: 'Analytical', topic: 'Series', text: "2, 6, 12, 20, 30, ... What number comes next?", options: ["40", "42", "44", "48"], correctIndex: 1 },
+      { section: 'Analytical', topic: 'Coding', text: "If APPLE is BQPMF. How is MANGO written?", options: ["NBOHP", "NBNHP", "OAPHP", "PCPJQ"], correctIndex: 0 },
+      { section: 'Analytical', topic: 'Seating', text: "A is left of B, right of C. D is right of B, left of E. Who is in the middle?", options: ["A", "B", "C", "D"], correctIndex: 1 },
+      { section: 'Analytical', topic: 'Odd One Out', text: "Find odd one out: Iron, Copper, Zinc, Brass.", options: ["Iron", "Copper", "Zinc", "Brass"], correctIndex: 3 },
+      { section: 'Analytical', topic: 'Calendars', text: "If Jan 1, 2006 was Sunday, what was Jan 1, 2010?", options: ["Thursday", "Friday", "Saturday", "Sunday"], correctIndex: 1 },
+      { section: 'Analytical', topic: 'Data Suff', text: "Is x even? I. 3x is even. II. x+5 is odd.", options: ["I alone", "II alone", "Either I or II", "Both combined"], correctIndex: 2 },
+      { section: 'Analytical', topic: 'Assumption', text: "'Use our anti-virus to protect your PC.' Assumption: People want to protect PCs.", options: ["Implicit", "Explicit", "Invalid", "None"], correctIndex: 0 }
+    ];
+
+    const PARENT_Q = [
+      { id: 'bud', label: 'Annual College Budget (No Borrowing)', t: 's', opts: ['Under ₹2L', '₹2L to ₹5L', '₹5L to ₹10L', '₹10L or more'] },
+      { id: 'loan', label: 'Education Loan Tolerance', t: 'r', opts: ['Strictly no loans', 'Subsidized loan < ₹5L', 'High EMI is manageable'] },
+      { id: 'sib', label: 'Other siblings starting college soon', t: 's', opts: ['None', 'One', 'Two or more'] },
+      { id: 'cat', label: 'Category (For Govt Waivers)', t: 'r', opts: ['General', 'OBC-NCL', 'SC', 'ST'] },
+      { id: 'ews', label: 'Hold EWS Certificate?', t: 'r', opts: ['Yes', 'No'] },
+      { id: 'risk', label: 'Career Risk / Tech Disruption Tolerance', t: 'r', opts: ['Conservative', 'Balanced', 'Bold'] },
+      { id: 'mob', label: 'Geographic Mobility', t: 's', opts: ['Day-scholar only', 'In-state', 'Pan-India', 'International'] },
+      { id: 'sec', label: 'Pick EXACTLY 3 domains you want for them', t: 'm3', opts: ['Core Tech','Civil Services','Healthcare','Design','Deep-Tech STEAM'] }
+    ];
+
+    const PN = ['Logical-Mathematical', 'Linguistic-Verbal', 'Spatial-Visual', 'Bodily-Kinesthetic', 'Musical-Rhythmic', 'Interpersonal', 'Intrapersonal', 'Naturalistic', 'Existential'];
+
+    const CAREERS = [
+      { n: 'AI & Machine Learning Engineer', d: 'Deep-Tech STEAM', I: [0], x: 'L', e: 1, v: 0, pt: 0, st: 0, vl: 'Surging', c0: 12, c5: 34, co: [1.6, 4.5], lm: 2, hub: 'Bengaluru, Hyderabad', ex: 'JEE Main, CUET', deg: 'B.Tech CSE (AI)', idea: 'Crop-disease detector app', found: 'Advanced Python & Math Logic' },
+      { n: 'Data & Business Analyst', d: 'Core Tech', I: [0, 1], x: 'L', e: 1, v: 0, pt: 0, st: 0, vl: 'Surging', c0: 8, c5: 22, co: [1.2, 3.5], lm: 1, hub: 'Chennai, Pune', ex: 'CUET, State CETs', deg: 'B.Sc Statistics', idea: 'Demand dashboard for local shops', found: 'Excel, SQL & Basic Stats' },
+      { n: 'Cloud & Software Architect', d: 'Core Tech', I: [0], x: 'L', e: 0, v: 0, pt: 0, st: 1, vl: 'Rising', c0: 9, c5: 28, co: [1.5, 4], lm: 2, hub: 'Bengaluru, Chennai', ex: 'JEE Main', deg: 'B.Tech IT', idea: 'Open-source school attendance system', found: 'Java/C++ & Systems Thinking' },
+      { n: 'Medical Doctor (MBBS)', d: 'Healthcare', I: [7, 5, 6], x: 'L', e: 0, v: 0, pt: 2, st: 1, vl: 'Steady', c0: 9, c5: 18, co: [0.3, 12], lm: 2, hub: 'Pan-India', ex: 'NEET-UG', deg: 'MBBS', idea: 'Tele-health desk for a village', found: 'Biology & Extreme Empathy' },
+      { n: 'UX & Product Designer', d: 'Design', I: [2, 1], x: 'L', e: 1, v: 0, pt: 0, st: 0, vl: 'Rising', c0: 8, c5: 24, co: [2, 5], lm: 1, hub: 'Bengaluru, Mumbai', ex: 'UCEED, NID', deg: 'B.Des', idea: 'App interface for senior citizens', found: 'Wireframing & Human Psychology' },
+      { n: 'Green Energy Engineer', d: 'Deep-Tech STEAM', I: [7, 0], x: 'L', e: 1, v: 1, pt: 0, st: 1, vl: 'Surging', c0: 7, c5: 19, co: [1.4, 4], lm: 1, hub: 'Gujarat, TN', ex: 'JEE, GATE', deg: 'B.Tech Energy', idea: 'Solar micro-grid prototype', found: 'Thermodynamics & Ecology' },
+      { n: 'Robotics Entrepreneur', d: 'Deep-Tech STEAM', I: [2, 3, 0], x: 'M', e: 1, v: 1, pt: 1, st: 0, vl: 'Rising', c0: 6, c5: 25, co: [1.8, 4.5], lm: 0, hub: 'Incubators', ex: 'JEE, UGEE', deg: 'B.Tech Mechatronics', idea: 'Low-cost cleaning robots', found: 'Hardware Prototyping & C++' },
+      { n: 'Civil Services Officer', d: 'Civil Services', I: [1, 5, 8], x: 'L', e: 0, v: 0, pt: 1, st: 1, vl: 'Steady', c0: 10, c5: 18, co: [0.3, 1.5], lm: 2, hub: 'Pan-India', ex: 'UPSC CSE', deg: 'Any Degree', idea: 'Data project for municipal ward', found: 'Public Policy & History' },
+      { n: 'Biotech Researcher', d: 'Healthcare', I: [7, 0, 8], x: 'L', e: 1, v: 0, pt: 1, st: 0, vl: 'Rising', c0: 7, c5: 20, co: [1.0, 3.5], lm: 2, hub: 'Hyderabad, Bengaluru', ex: 'CUET, IISER Aptitude', deg: 'B.Sc Biotechnology', idea: 'Low-cost water diagnostic strip', found: 'Genetics & Lab Procedures' },
+      { n: 'Audio AI Engineer', d: 'Design', I: [4, 0], x: 'L', e: 1, v: 0, pt: 0, st: 0, vl: 'Rising', c0: 5, c5: 14, co: [1.5, 4.0], lm: 1, hub: 'Mumbai, Chennai', ex: 'CUET, Auditions', deg: 'B.Sc Audio Engineering', idea: 'Sound map of local folk music', found: 'Acoustics & Digital Audio Logic' },
+      { n: 'Sports Data Scientist', d: 'Healthcare', I: [3, 0], x: 'L', e: 0, v: 0, pt: 0, st: 0, vl: 'Rising', c0: 6, c5: 16, co: [1.0, 3.0], lm: 1, hub: 'Sports Academies, Pune', ex: 'State CETs', deg: 'B.Sc Sports Science / Analytics', idea: 'School fitness-tracking dashboard', found: 'Kinesiology & Python' },
+      { n: 'Cybersecurity Analyst', d: 'Core Tech', I: [0, 6], x: 'L', e: 1, v: 0, pt: 0, st: 0, vl: 'Surging', c0: 9, c5: 26, co: [1.5, 4.0], lm: 2, hub: 'Delhi NCR, Bengaluru', ex: 'JEE, State CETs', deg: 'B.Tech IT (Security)', idea: 'School network audit report', found: 'Networks & Risk Assessment' },
+      { n: 'Financial Quantitative Analyst', d: 'Core Tech', I: [0], x: 'M', e: 0, v: 0, pt: 0, st: 0, vl: 'Rising', c0: 14, c5: 35, co: [1.5, 5.0], lm: 2, hub: 'Mumbai, Gurugram', ex: 'CUET, CA', deg: 'B.Com / B.Sc Statistics', idea: 'Algorithmic trading bot', found: 'Calculus & Probability' },
+      { n: 'Clinical Psychologist', d: 'Healthcare', I: [5, 6, 8], x: 'L', e: 0, v: 0, pt: 1, st: 0, vl: 'Surging', c0: 6, c5: 15, co: [0.5, 2.5], lm: 1, hub: 'Pan-India', ex: 'CUET', deg: 'B.A Psychology', idea: 'Mental health peer network', found: 'Behavioral Science & Empathy' },
+      { n: 'Digital Marketing Strategist', d: 'Design', I: [1, 5], x: 'M', e: 0, v: 0, pt: 0, st: 0, vl: 'Rising', c0: 5, c5: 18, co: [0.8, 3.0], lm: 0, hub: 'Remote, Bengaluru', ex: 'Direct / CUET', deg: 'BBA / Mass Comm', idea: 'Local business ad campaign', found: 'Copywriting & SEO' },
+      { n: 'Mechatronics Engineer', d: 'Deep-Tech STEAM', I: [3, 2, 0], x: 'L', e: 0, v: 0, pt: 0, st: 1, vl: 'Steady', c0: 7, c5: 22, co: [1.5, 4.0], lm: 2, hub: 'Pune, Chennai', ex: 'JEE Main', deg: 'B.Tech Mechatronics', idea: 'Automated warehouse sorter', found: 'Physics & Prototyping' },
+      { n: 'Quantum Computing Researcher', d: 'Deep-Tech STEAM', I: [0, 8], x: 'L', e: 1, v: 0, pt: 2, st: 1, vl: 'Emerging', c0: 10, c5: 30, co: [1.2, 3.0], lm: 3, hub: 'IISc, Global', ex: 'IISER, JEE Adv', deg: 'B.Sc Physics', idea: 'Quantum logic simulator', found: 'Advanced Physics & Math' }
+    ];
+
+    let State = {
+      intel: { logical:0, spatial:0, kinesthetic:0, linguistic:0, naturalistic:0, interpersonal:0, intrapersonal:0, musical:0, existential:0 },
+      intelStep: 0, intelSels: Array(10).fill().map(() => []), 
+      aptiStep: 0, aptiAns: {}, aptiMarks: new Set(),
+      parent: { sec: [], per: [], dis: [] }
+    };
+    
+    let radarChartInstance = null;
+    let globalTopCareer = "";
+    let globalAptiPct = 0;
+    let globalTopIntel = "";
+
+    document.addEventListener('keydown', (e) => {
+      if(e.shiftKey && e.key.toLowerCase() === 'd') {
+        State.intel = { logical:5, spatial:3, kinesthetic:0, linguistic:2, naturalistic:0, interpersonal:1, intrapersonal:1, musical:0, existential:0 };
+        State.aptiAns = {0:1, 1:1, 2:1, 3:2, 4:1, 5:2, 6:1, 7:1, 8:2, 9:2, 10:0, 11:1, 12:2, 13:1, 14:0, 15:1, 16:3, 17:1, 18:2, 19:0};
+        State.parent = { bud: '₹5L to ₹10L', loan: 'Subsidized loan < ₹5L', sib: 'One', cat: 'General', ews: 'No', risk: 'Bold', mob: 'Pan-India', sec: ['Core Tech', 'Deep-Tech STEAM', 'Design'], per: ['Logical-Mathematical', 'Spatial-Visual'], dis: ['Musical-Rhythmic'] };
+        synthesizeRoadmap();
+      }
+    });
+
+    function updateMasterProgress(percent) { 
+      const el = document.getElementById('master-progress');
+      if (el) el.style.width = `${percent}%`; 
+    }
+
+    function showPhase(n) {
+      document.querySelectorAll('.phase-section').forEach((el, i) => {
+        if (i === n) {
+          el.classList.remove('hidden');
+          el.classList.remove('animate-fade-in-up');
+          void el.offsetWidth;
+          el.classList.add('flex');
+          el.classList.add('animate-fade-in-up');
+        } else {
+          el.classList.add('hidden');
+          el.classList.remove('flex');
+        }
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      const trk = document.getElementById('nav-tracker');
+      const bdg = document.getElementById('phase-badge');
+      if (n === 0) trk.classList.add('hidden');
+      else {
+        trk.classList.remove('hidden');
+        if (n < 4) bdg.innerText = `Phase ${n}/3`; else bdg.innerText = `Dashboard`;
+      }
+    }
+
+    function startApp() { showPhase(1); updateMasterProgress(10); renderIntel(); }
+
+    function renderIntel() {
+      const s = SCENARIOS[State.intelStep];
+      document.getElementById('scen-icon').innerText = s.icon;
+      document.getElementById('scen-cat').innerText = s.cat;
+      document.getElementById('scen-title').innerText = s.title;
+      document.getElementById('scen-desc').innerText = s.desc;
+
+      const optsDiv = document.getElementById('intel-options');
+      optsDiv.innerHTML = '';
+      Object.keys(s.opts).forEach(k => {
+        const o = s.opts[k];
+        const isSel = State.intelSels[State.intelStep].includes(k);
+        optsDiv.innerHTML += `
+          <div onclick="toggleIntel('${k}', this)" class="glass-card cursor-pointer rounded-2xl p-4 sm:p-5 flex flex-col justify-between select-none ${isSel ? 'card-selected animate-pop' : ''}">
+            <div class="flex justify-between items-center mb-3">
+              <span class="text-[10px] font-black text-brandGold uppercase tracking-widest bg-black/60 px-2 py-1 rounded border border-brandGold/30">${INTEL_META[k].short}</span>
+              <div class="w-5 h-5 rounded-full border-2 ${isSel ? 'border-brandGold bg-brandGold text-black' : 'border-neutral-600 text-white'} flex items-center justify-center text-xs font-bold">
+                ${isSel ? '✓' : ''}
+              </div>
+            </div>
+            <h4 class="text-sm font-bold text-white mb-2 leading-tight">${o.t}</h4>
+            <p class="text-xs text-neutral-400 leading-relaxed">${o.d}</p>
+          </div>
+        `;
+      });
+
+      const count = State.intelSels[State.intelStep].length;
+      document.getElementById('intel-count').innerText = count;
+      document.getElementById('btn-intel-prev').disabled = State.intelStep === 0;
+      document.getElementById('btn-intel-next').disabled = count === 0;
+      document.getElementById('intel-progress').style.width = `${((State.intelStep + 1) / SCENARIOS.length) * 100}%`;
+      document.getElementById('intel-step-text').innerText = `Scenario ${State.intelStep + 1} / 10`;
+    }
+
+    function toggleIntel(key, el) {
+      let arr = State.intelSels[State.intelStep];
+      let idx = arr.indexOf(key);
+      if (idx > -1) {
+        arr.splice(idx, 1);
+        el.classList.remove('card-selected', 'animate-pop');
+        el.querySelector('.w-5').className = "w-5 h-5 rounded-full border-2 border-neutral-600 flex items-center justify-center text-xs";
+        el.querySelector('.w-5').innerText = '';
+      } else {
+        if (arr.length >= 3) return;
+        arr.push(key);
+        el.classList.add('card-selected', 'animate-pop');
+        el.querySelector('.w-5').className = "w-5 h-5 rounded-full border-2 border-brandGold bg-brandGold text-black flex items-center justify-center text-xs font-bold";
+        el.querySelector('.w-5').innerText = '✓';
+      }
+      document.getElementById('intel-count').innerText = arr.length;
+      document.getElementById('btn-intel-next').disabled = arr.length === 0;
+    }
+
+    function prevIntel() { if (State.intelStep > 0) { State.intelStep--; renderIntel(); } }
+    function nextIntel() {
+      if (State.intelStep < SCENARIOS.length - 1) { 
+        State.intelStep++; renderIntel(); updateMasterProgress(10 + (State.intelStep * 3));
+      } else {
+        State.intelSels.forEach(arr => arr.forEach(k => State.intel[k]++));
+        showPhase(2); updateMasterProgress(40); renderApti();
+      }
+    }
+
+    function renderApti() {
+      const q = APTI[State.aptiStep];
+      document.getElementById('apti-q-num').innerText = `Q${State.aptiStep + 1} of ${APTI.length}`;
+      document.getElementById('apti-q-topic').innerText = q.topic;
+      document.getElementById('apti-q-text').innerText = q.text;
+
+      const optsDiv = document.getElementById('apti-options');
+      optsDiv.innerHTML = '';
+      q.options.forEach((o, i) => {
+        const isSel = State.aptiAns[State.aptiStep] === i;
+        optsDiv.innerHTML += `
+          <button onclick="selectApti(${i})" class="w-full text-left p-4 sm:p-5 rounded-xl border transition-all flex items-center gap-4 group ${isSel ? 'border-brandGold bg-brandGold/15' : 'border-neutral-800 bg-black/40 hover:border-brandGold/50'}">
+            <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${isSel ? 'border-brandGold' : 'border-neutral-600'}">
+              ${isSel ? '<div class="w-2.5 h-2.5 bg-brandGold rounded-full"></div>' : ''}
+            </div>
+            <span class="text-sm sm:text-base ${isSel ? 'text-white font-medium' : 'text-neutral-300'}">${o}</span>
+          </button>
+        `;
+      });
+
+      document.getElementById('btn-apti-prev').disabled = State.aptiStep === 0;
+      document.getElementById('btn-apti-next').disabled = State.aptiStep === APTI.length - 1;
+      
+      const isMarked = State.aptiMarks.has(State.aptiStep);
+      const markBtn = document.getElementById('btn-apti-mark');
+      if (isMarked) markBtn.className = "px-4 py-2 rounded-lg font-bold text-xs sm:text-sm bg-brandGold text-black shadow-lg";
+      else markBtn.className = "px-4 py-2 rounded-lg font-bold text-xs sm:text-sm bg-brandGold/10 text-brandGold border border-brandGold/30";
+      
+      renderAptiNav();
+    }
+
+    function selectApti(idx) {
+      State.aptiAns[State.aptiStep] = idx;
+      renderApti();
+      updateMasterProgress(40 + (Object.keys(State.aptiAns).length * 1.5));
+      if(State.aptiStep < APTI.length - 1) setTimeout(() => nextApti(), 400);
+    }
+
+    function toggleMarkApti() {
+      if (State.aptiMarks.has(State.aptiStep)) State.aptiMarks.delete(State.aptiStep);
+      else State.aptiMarks.add(State.aptiStep);
+      renderApti();
+    }
+
+    function prevApti() { if (State.aptiStep > 0) { State.aptiStep--; renderApti(); } }
+    function nextApti() { if (State.aptiStep < APTI.length - 1) { State.aptiStep++; renderApti(); } }
+    function jumpApti(idx) { State.aptiStep = idx; renderApti(); }
+
+    function renderAptiNav() {
+      const nav1 = document.getElementById('apti-nav-1');
+      const nav2 = document.getElementById('apti-nav-2');
+      nav1.innerHTML = ''; nav2.innerHTML = '';
+      
+      APTI.forEach((q, i) => {
+        const isAns = State.aptiAns[i] !== undefined; const isMark = State.aptiMarks.has(i); const isAct = State.aptiStep === i;
+        let cls = "relative w-full aspect-square rounded-lg font-bold text-xs sm:text-sm flex items-center justify-center transition-all border-2 ";
+        if (isAct) cls += "bg-brandGold text-black border-brandGoldSoft scale-110 z-10 shadow-lg";
+        else if (isAns) cls += "bg-neutral-900 text-brandGold border-brandGold/50 hover:bg-neutral-800";
+        else cls += "bg-black/60 text-neutral-500 border-neutral-800 hover:border-neutral-600";
+
+        let html = `<button onclick="jumpApti(${i})" class="${cls}">${i + 1}`;
+        if (isMark) html += `<div class="absolute -top-1.5 -right-1.5 bg-brandGoldSoft w-3 h-3 rounded-full border-2 border-black"></div>`;
+        html += `</button>`;
+        if (i < 10) nav1.innerHTML += html; else nav2.innerHTML += html;
+      });
+    }
+
+    function finishApti() {
+      const ansCount = Object.keys(State.aptiAns).length;
+      if (ansCount < APTI.length && !confirm(`You have unanswered questions. Submit anyway?`)) return;
+      showPhase(3); updateMasterProgress(70); renderParent();
+    }
+
+    function renderParent() {
+      const container = document.getElementById('parent-form-container');
+      container.innerHTML = '';
+      PARENT_Q.forEach(q => {
+        let html = `<div class="p-6 bg-white/5 rounded-2xl border border-brandGold/20"><h4 class="font-bold text-brandGold mb-4">${q.label}</h4>`;
+        if (q.t === 's') {
+          html += `<select onchange="updateParent('${q.id}', this.value)"><option value="">-- Choose Option --</option>${q.opts.map(o => `<option value="${o}">${o}</option>`).join('')}</select>`;
+        } else if (q.t === 'r') {
+          html += `<div class="flex flex-wrap gap-3">${q.opts.map(o => `<button onclick="setParentRadio('${q.id}', '${o}', this)" class="btn-pr-${q.id} px-4 py-2 rounded-xl border border-neutral-700 bg-black/60 text-sm text-neutral-300 hover:border-brandGold transition-all">${o}</button>`).join('')}</div>`;
+        } else if (q.t === 'm3') {
+          html += `<div class="flex flex-wrap gap-2">${q.opts.map(o => `<button onclick="setParentMulti('${q.id}', '${o}', 3, this)" class="btn-pm-${q.id} px-4 py-2 rounded-full border border-neutral-700 bg-black/60 text-xs font-medium text-neutral-300 hover:border-brandGold transition-all">${o}</button>`).join('')}</div><p class="text-[10px] text-neutral-500 mt-3 italic uppercase tracking-widest">Select exactly 3.</p>`;
+        }
+        html += `</div>`; container.innerHTML += html;
+      });
+      const extraQ = [{ id: 'per', label: 'Top 3 areas your child naturally excels in', limit: 3 }, { id: 'dis', label: '1-2 traits viewed as distractions to studies', limit: 2 }];
+      extraQ.forEach(eq => {
+        let html = `<div class="p-6 bg-white/5 rounded-2xl border border-brandGold/20"><h4 class="font-bold text-brandGoldSoft mb-4">${eq.label}</h4><div class="flex flex-wrap gap-2">`;
+        PN.forEach(o => { html += `<button onclick="setParentMulti('${eq.id}', '${o}', ${eq.limit}, this)" class="btn-pm-${eq.id} px-4 py-2 rounded-full border border-neutral-700 bg-black/60 text-xs font-medium text-neutral-300 hover:border-brandGold transition-all">${o}</button>`; });
+        html += `</div><p class="text-[10px] text-neutral-500 mt-3 italic uppercase tracking-widest">Select up to ${eq.limit}.</p></div>`;
+        container.innerHTML += html;
+      });
+    }
+    function updateParent(id, val) { State.parent[id] = val; }
+    function setParentRadio(id, val, btn) {
+      State.parent[id] = val;
+      document.querySelectorAll(`.btn-pr-${id}`).forEach(b => { b.classList.remove('border-brandGold', 'bg-brandGold', 'text-black'); b.classList.add('border-neutral-700', 'bg-black/60', 'text-neutral-300'); });
+      btn.classList.remove('border-neutral-700', 'bg-black/60', 'text-neutral-300'); btn.classList.add('border-brandGold', 'bg-brandGold', 'text-black');
+    }
+    function setParentMulti(id, val, limit, btn) {
+      let arr = State.parent[id]; let idx = arr.indexOf(val);
+      if (idx > -1) {
+        arr.splice(idx, 1);
+        btn.classList.remove('border-brandGold', 'bg-brandGoldDark', 'text-black', 'border-red-400', 'bg-red-900', 'text-white');
+        btn.classList.add('border-neutral-700', 'bg-black/60', 'text-neutral-300');
+      } else {
+        if (arr.length >= limit) return;
+        arr.push(val);
+        btn.classList.remove('border-neutral-700', 'bg-black/60', 'text-neutral-300');
+        if(id==='dis') btn.classList.add('border-red-400', 'bg-red-900', 'text-white');
+        else btn.classList.add('border-brandGold', 'bg-brandGoldDark', 'text-black');
+      }
+    }
+
+    function synthesizeRoadmap() {
+      let appliedDefaults = [];
+      if (!State.parent.bud) { State.parent.bud = '₹2L to ₹5L'; appliedDefaults.push('Budget'); }
+      if (!State.parent.loan) { State.parent.loan = 'Subsidized loan < ₹5L'; appliedDefaults.push('Loan Limits'); }
+      if (!State.parent.risk) { State.parent.risk = 'Balanced'; appliedDefaults.push('Risk Tolerance'); }
+      if (!State.parent.mob) { State.parent.mob = 'In-state'; appliedDefaults.push('Mobility'); }
+      if (!State.parent.sec || State.parent.sec.length < 1) { State.parent.sec = ['Core Tech', 'Deep-Tech STEAM', 'Healthcare']; appliedDefaults.push('Sectors'); }
+
+      if (appliedDefaults.length > 0) {
+        document.getElementById('defaults-banner').classList.remove('hidden');
+        document.getElementById('defaults-text').innerText = "Applied constraints for: " + appliedDefaults.join(', ') + ".";
+      } else {
+        document.getElementById('defaults-banner').classList.add('hidden');
+      }
+
+      const overlay = document.getElementById('processing-overlay');
+      const loadText = document.getElementById('loading-text');
+      overlay.style.display = 'flex';
+      
+      setTimeout(() => { loadText.innerText = "Applying Financial Constraint Limits..."; updateMasterProgress(80); }, 800);
+      setTimeout(() => { loadText.innerText = "Generating AI Career Narrative..."; updateMasterProgress(90); }, 1600);
+      setTimeout(() => { 
+        overlay.style.display = 'none';
+        confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 }, colors: ['#d3af37', '#eee1ad', '#b99725'] });
+        updateMasterProgress(100);
+        showPhase(4);
+        renderDashboard();
+      }, 2600);
+    }
+
+    function typeWriterEffect(text, elementId, speed = 15) {
+      let i = 0;
+      const el = document.getElementById(elementId);
+      el.innerHTML = "";
+      function type() {
+        if (i < text.length) {
+          el.innerHTML += text.charAt(i);
+          i++;
+          setTimeout(type, speed);
+        }
+      }
+      type();
+    }
+
+    function renderDashboard() {
+      const intels = INTEL_ORDER.map((k, i) => ({ id: k, name: INTEL_META[k].short, score: State.intel[k], idx: i })).sort((a, b) => b.score - a.score);
+      renderRadarChart(intels);
+      document.getElementById('dash-leaderboard').innerHTML = intels.slice(0, 3).map((item, idx) => `
+        <div class="p-4 rounded-2xl border ${["bg-brandGold/20 border-brandGold", "bg-neutral-800 border-neutral-600", "bg-neutral-900 border-neutral-700"][idx]} flex items-center justify-between">
+          <div class="flex items-center gap-4"><div class="text-3xl">${["🥇", "🥈", "🥉"][idx]}</div><h4 class="text-sm font-bold text-white tracking-wide">${item.name}</h4></div>
+          <div class="font-black ${["text-brandGold", "text-neutral-300", "text-neutral-400"][idx]}">Rank ${idx+1}</div>
+        </div>
+      `).join('');
+      globalTopIntel = intels[0].name;
+
+      let aptiCorrect = 0; APTI.forEach((q, i) => { if (State.aptiAns[i] === q.correctIndex) aptiCorrect++; });
+      const aptiPct = Math.round((aptiCorrect / APTI.length) * 100) || 0;
+      document.getElementById('dash-apti-score').innerText = `${aptiPct}%`;
+      globalAptiPct = aptiPct;
+
+      const P = State.parent;
+      const bIdx = ['Under ₹2L', '₹2L to ₹5L', '₹5L to ₹10L', '₹10L or more'].indexOf(P.bud);
+      const sIdx = ['None', 'One', 'Two or more'].indexOf(P.sib || 'None');
+      const lIdx = ['Strictly no loans', 'Subsidized loan < ₹5L', 'High EMI is manageable'].indexOf(P.loan);
+      const mobIdx = ['Day-scholar only', 'In-state', 'Pan-India', 'International'].indexOf(P.mob);
+      
+      const cap = [2, 5, 10, 15][Math.max(0, bIdx - sIdx)]; const loan = [0, 1.2, 3][lIdx];
+      let aid = 0; if (P.cat === 'SC' || P.cat === 'ST') aid += 1.0; else if (P.cat === 'OBC-NCL') aid += 0.5;
+      if (P.ews === 'Yes') aid += 0.75; if (bIdx < 2) aid += 0.5;
+      const maxFund = cap + loan + aid;
+
+      document.getElementById('dash-bud').innerText = `₹${cap}L/yr`; document.getElementById('dash-loan').innerText = `₹${loan}L/yr`;
+      document.getElementById('dash-aid').innerText = `₹${aid.toFixed(2)}L/yr`; document.getElementById('dash-ceil').innerText = `₹${maxFund.toFixed(2)}L/yr`;
+
+      let schols = [];
+      if (P.cat === 'SC' || P.cat === 'ST') schols.push("Post-Matric Scholarship for SC/ST students");
+      if (P.cat === 'OBC-NCL') schols.push("OBC-NCL fee concessions & post-matric aid");
+      if (P.ews === 'Yes') schols.push("EWS 10% reserved seats at IITs, NITs, Central Univs");
+      if (bIdx < 2) schols.push("TFW Tuition Fee Waiver Scheme at AICTE colleges");
+      schols.push("Merit awards: National Scholarship Portal, INSPIRE-SHE");
+      document.getElementById('dash-schols').innerHTML = schols.map(s => `<li>${s}</li>`).join('');
+
+      const topIntelIds = intels.slice(0,3).map(i => i.idx);
+      let matched = [];
+      CAREERS.forEach(c => {
+        let costIdx = c.co.findIndex(cost => cost <= maxFund);
+        if (costIdx > -1) {
+          if (c.x === 'H' && P.risk === 'Conservative') return;
+          if (c.x === 'M' && P.risk === 'Conservative') return;
+          if (c.lm > mobIdx) return;
+          
+          let score = 0;
+          if (aptiPct >= 60 && (c.d === 'Core Tech' || c.d === 'Deep-Tech STEAM')) score += 20;
+          if (c.I.some(i => topIntelIds.includes(i))) score += 40;
+          if (P.sec && P.sec.includes(c.d)) score += 30;
+          if (P.risk === 'Bold' || (P.risk === 'Balanced' && c.x !== 'H')) score += 10;
+          
+          if (score > 30) matched.push({ ...c, score, viableCost: c.co[costIdx], route: costIdx === 0 ? 'Govt/Aided' : 'Private' });
+        }
+      });
+      matched.sort((a,b) => b.score - a.score);
+      
+      if (matched.length === 0) {
+        matched.push({ ...CAREERS[1], score: 55, viableCost: 1.2, route: 'Govt/Aided' });
+      }
+
+      const best = matched[0];
+      globalTopCareer = best.n;
+
+      const narrative = `Based on your exceptional ${aptiPct}% analytical score and dominant ${globalTopIntel} intelligence, you naturally excel at structuring complex systems. The engine has identified ${best.n} as your optimal trajectory. Why this career? It leverages your core cognitive strengths while perfectly matching your family's ${P.risk} risk profile and ₹${maxFund.toFixed(2)}L/yr financial ceiling. With market demand currently ${best.vl}, this path offers high automation resilience and strong ROI.`;
+      typeWriterEffect(narrative, 'llm-narrative-box', 15);
+
+      const topContainer = document.getElementById('top-match-container');
+      topContainer.innerHTML = `
+        <h3 class="text-2xl font-display font-black text-white mb-6 flex items-center gap-3 no-print">
+          <span class="w-8 h-8 rounded-full bg-brandGold flex items-center justify-center text-sm text-black shadow-[0_0_15px_rgba(211,175,55,0.5)]">⭐</span> Your Primary Architecture
+        </h3>
+        <div class="glass-card static-card p-8 rounded-3xl relative overflow-hidden border-brandGold/60">
+          <div class="absolute -right-20 -top-20 w-64 h-64 bg-brandGold/15 rounded-full blur-3xl pointer-events-none no-print"></div>
+          
+          <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-10 relative z-10">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-widest bg-brandGold/15 px-3 py-1 rounded text-brandGoldSoft border border-brandGold/30 inline-block mb-3">${best.d}</span>
+              <h4 class="text-4xl font-display font-black text-white">${best.n}</h4>
+              <div class="flex gap-4 mt-3 text-sm text-neutral-300">
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-brandGold no-print"></span> ${best.vl} Demand</span>
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-brandGoldSoft no-print"></span> ${best.viableCost > (cap+aid) ? 'Requires Loan' : 'Debt Free'}</span>
+              </div>
+            </div>
+            <div class="text-left md:text-right bg-black/60 px-6 py-4 rounded-2xl border border-brandGold/30">
+              <div class="text-4xl font-black text-brandGold">${best.score}%</div>
+              <div class="text-[10px] uppercase tracking-widest text-neutral-400 font-bold mt-1">Total Alignment</div>
+            </div>
+          </div>
+
+          <div class="relative border-l-2 border-brandGold/40 ml-4 pl-8 space-y-8 z-10">
+            <div class="timeline-node relative">
+              <div class="text-[10px] font-bold uppercase tracking-widest text-brandGoldSoft mb-1">Stage 1: Core Foundation</div>
+              <h5 class="text-lg font-bold text-white">${best.found}</h5>
+              <p class="text-sm text-neutral-400 mt-1">Master these baseline skills before college.</p>
+            </div>
+            <div class="timeline-node relative">
+              <div class="text-[10px] font-bold uppercase tracking-widest text-brandGold mb-1">Stage 2: Entrance & Degree</div>
+              <h5 class="text-lg font-bold text-white">${best.deg} via ${best.ex}</h5>
+              <p class="text-sm text-neutral-400 mt-1">Target ${best.route} institutes. Financially viable under ₹${maxFund.toFixed(2)}L/yr cap.</p>
+            </div>
+            <div class="timeline-node relative">
+              <div class="text-[10px] font-bold uppercase tracking-widest text-brandGoldSoft mb-1">Stage 3: Hyper-Local Innovation</div>
+              <h5 class="text-lg font-bold text-white">Project: ${best.idea}</h5>
+              <p class="text-sm text-neutral-400 mt-1">Build this proof-of-work to bypass placement competition.</p>
+            </div>
+            <div class="timeline-node relative">
+              <div class="text-[10px] font-bold uppercase tracking-widest text-brandGold mb-1">Stage 4: Market Entry</div>
+              <h5 class="text-lg font-bold text-white">₹${best.c0}L starting ➝ ₹${best.c5}L (Yr 5)</h5>
+              <p class="text-sm text-neutral-400 mt-1">Target hiring hubs: <b>${best.hub}</b>.</p>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const altContainer = document.getElementById('dash-jobs');
+      if (matched.length > 1) {
+        altContainer.innerHTML = matched.slice(1, 4).map(m => `
+          <div class="glass-card static-card p-6 rounded-3xl relative overflow-hidden flex flex-col h-full border border-brandGold/20">
+            <div class="flex justify-between items-start mb-4">
+              <span class="text-[10px] font-bold uppercase tracking-widest bg-brandGold/10 border border-brandGold/20 px-2 py-1 rounded text-brandGoldSoft">${m.d}</span>
+              <span class="text-xl font-black text-brandGold">${m.score}%</span>
+            </div>
+            <h4 class="text-xl font-display font-bold text-white leading-tight mb-2">${m.n}</h4>
+            <p class="text-sm text-brandGoldSoft mb-6 flex-grow">${m.deg}</p>
+            <div class="space-y-2 text-xs border-t border-brandGold/15 pt-4">
+              <div class="flex justify-between"><span class="text-neutral-400">Exams</span><span class="text-white font-medium">${m.ex}</span></div>
+              <div class="flex justify-between"><span class="text-neutral-400">Salary (Yr5)</span><span class="text-brandGold font-bold">₹${m.c5}L/yr</span></div>
+              <div class="flex justify-between"><span class="text-neutral-400">Safety</span><span class="text-white">${m.viableCost > (cap+aid) ? 'Requires Loan' : 'Debt Free'}</span></div>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        altContainer.innerHTML = `<div class="col-span-full text-neutral-500 italic">No other pathways survived the financial and mobility constraints.</div>`;
+      }
+
+      const perStr = P.per || []; const disStr = P.dis || []; const topStr = intels.slice(0,3).map(i => PN[i.idx]);
+      const clash = topStr.filter(t => disStr.includes(t)); const overlap = topStr.filter(t => perStr.includes(t));
+      let lvl = (!P.sec.length || !overlap.length) ? 'HIGH' : (overlap.length > 1) ? 'LOW' : 'MODERATE';
+      
+      document.getElementById('dash-conflict').innerHTML = `
+        <h3 class="text-sm font-bold text-neutral-300 uppercase tracking-widest mb-4 flex justify-between">
+          Parent-Student Conflict <span class="px-2 py-0.5 rounded border ${lvl==='HIGH'?'border-red-500 text-red-400 bg-red-950/50':lvl==='LOW'?'border-brandGold text-brandGoldSoft bg-black/60':'border-amber-500 text-amber-300 bg-amber-950/50'}">${lvl}</span>
+        </h3>
+        <p class="text-sm text-neutral-400 mb-2"><strong class="text-neutral-200">Aptitude Recognition:</strong> ${overlap.length ? `<span class="text-brandGold">${overlap.join(', ')}</span>` : '<span class="text-red-400">None recognized</span>'}</p>
+        ${clash.length ? `<div class="mt-4 p-3 bg-red-950/40 border border-red-800 rounded-lg text-red-300 text-sm"><b>🚨 Warning:</b> Core strength (${clash.join(', ')}) tagged as a distraction by parent. Discussion advised.</div>` : ''}
+      `;
+    }
+
+    function renderRadarChart(intels) {
+      if (radarChartInstance) radarChartInstance.destroy();
+      const ctx = document.getElementById('radarChart').getContext('2d');
+      const sorted = [...intels].sort((a,b) => a.idx - b.idx);
+      const grad = ctx.createLinearGradient(0, 0, 0, 400);
+      grad.addColorStop(0, 'rgba(211, 175, 55, 0.7)');
+      grad.addColorStop(1, 'rgba(238, 225, 173, 0.15)');
+
+      radarChartInstance = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: sorted.map(i => i.name),
+          datasets: [{ data: sorted.map(i => i.score), backgroundColor: grad, borderColor: '#d3af37', pointBackgroundColor: '#eee1ad', pointBorderColor: '#1a1a1a', borderWidth: 2, tension: 0.3 }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          scales: { r: { angleLines: { color: 'rgba(211, 175, 55, 0.2)' }, grid: { color: 'rgba(211, 175, 55, 0.15)', circular: true }, pointLabels: { color: '#eee1ad', font: { size: 10, family: 'Inter', weight: '600' } }, ticks: { display: false, min: 0, max: Math.max(...sorted.map(i=>i.score)) + 1 } } },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    function shareToWhatsApp() {
+      const text = `Hey! I just used the Yash Career Engine. My top recommended career path is *${globalTopCareer}* based on my ${globalAptiPct}% Aptitude and ${globalTopIntel} intelligence! 🚀 Find your true vector!`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    }
+
+    function printReport() {
+      window.print();
+    }
+  </script>
+</body>
+</html>
